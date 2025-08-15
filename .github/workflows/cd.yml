@@ -31,6 +31,7 @@ jobs:
           mingw-w64-x86_64-qt6-base
           mingw-w64-x86_64-qt6-declarative
           mingw-w64-x86_64-qt6-shadertools
+          mingw-w64-x86_64-qt6-tools
           mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-pkgconf
           
@@ -55,32 +56,46 @@ jobs:
       shell: msys2 {0}
       run: |
         cd build
-        set -e
+        set -euo pipefail
+        set -x
         pkgdir=release-package
         mkdir -p "$pkgdir"
 
-        # 1) Copy main executable
-        cp YUViz.exe "$pkgdir/"
-
-        # 2) Use windeployqt6 to collect Qt runtime and plugins
+        # 1) Use windeployqt6 to collect Qt runtime and plugins
         if [ -x "/mingw64/bin/windeployqt6.exe" ]; then
           /mingw64/bin/windeployqt6.exe \
             --release \
             --qmldir ../src/qml \
             --dir "$pkgdir" \
-            "$pkgdir/YUViz.exe" || {
+            ./YUViz.exe || {
               echo "windeployqt6 failed, fallback to manual copy of Qt6*.dll"
-              cp /mingw64/bin/Qt6*.dll "$pkgdir/" || true
+              shopt -s nullglob
+              qt_dlls=(/mingw64/bin/Qt6*.dll)
+              echo "Qt6 DLLs to copy: ${#qt_dlls[@]}"
+              for f in "${qt_dlls[@]}"; do
+                cp -u "$f" "$pkgdir/" || true
+              done
+              echo "Copied ${#qt_dlls[@]} Qt6 DLLs"
             }
         else
           echo "windeployqt6.exe not found, fallback to manual copy of Qt6*.dll"
-          cp /mingw64/bin/Qt6*.dll "$pkgdir/" || true
+          shopt -s nullglob
+          qt_dlls=(/mingw64/bin/Qt6*.dll)
+          echo "Qt6 DLLs to copy: ${#qt_dlls[@]}"
+          for f in "${qt_dlls[@]}"; do
+            cp -u "$f" "$pkgdir/" || true
+          done
+          echo "Copied ${#qt_dlls[@]} Qt6 DLLs"
         fi
+
+        # 2) Copy main executable into package directory (after deployment)
+        cp -u ./YUViz.exe "$pkgdir/"
 
         # 3) Copy FFmpeg DLLs (common components)
         for lib in avcodec avformat avutil swscale swresample avfilter; do
           find /mingw64/bin -name "${lib}*.dll" -exec cp -u {} "$pkgdir/" \; 2>/dev/null || true
         done
+        echo "FFmpeg DLLs present: $(ls -1 "$pkgdir"/avcodec*.dll 2>/dev/null | wc -l) avcodec, $(ls -1 "$pkgdir"/avformat*.dll 2>/dev/null | wc -l) avformat"
 
         # 4) Copy MinGW runtime and common base deps (cover nanosleep symbol source)
         for dll in \
@@ -96,6 +111,7 @@ jobs:
           libxml2-2.dll; do
           [ -f "/mingw64/bin/$dll" ] && cp -u "/mingw64/bin/$dll" "$pkgdir/" || true
         done
+        echo "Runtime/base DLLs copied."
 
         # 5) Optional: EGL/OpenGL related
         find /mingw64/bin -name "libEGL*.dll"   -exec cp -u {} "$pkgdir/" \; 2>/dev/null || true
@@ -118,6 +134,7 @@ jobs:
         }
         copy_missing_deps
         copy_missing_deps
+        echo "After ldd passes, total files in package: $(ls -1 "$pkgdir" | wc -l)"
 
         # 7) Ensure platform plugin exists
         mkdir -p "$pkgdir/platforms"
