@@ -110,7 +110,11 @@ jobs:
             QtQuick/Window \
             QtQuick/Controls \
             QtQuick/Controls/Basic \
-            QtQuick/Layouts; do
+            QtQuick/Layouts \
+            QtQuick/Dialogs \
+            QtQuick/Dialogs/quickimpl \
+            Qt/labs/folderlistmodel \
+            Qt/labs/settings; do
             if [ -d "$qt_qml_dir/$m" ]; then
               dest="$pkgdir/qml/$m"
               mkdir -p "$dest"
