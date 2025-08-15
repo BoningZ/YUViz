@@ -158,7 +158,7 @@ jobs:
                 base="$(basename "$p")"
                 [ -f "/mingw64/bin/$base" ] && cp -u "/mingw64/bin/$base" "$pkgdir/" || true
               fi
-            done
+            done || true
           done
         }
         copy_missing_deps
