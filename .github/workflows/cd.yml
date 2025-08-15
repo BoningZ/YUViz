@@ -32,6 +32,7 @@ jobs:
           mingw-w64-x86_64-qt6-declarative
           mingw-w64-x86_64-qt6-shadertools
           mingw-w64-x86_64-qt6-tools
+          mingw-w64-x86_64-qt6-quickcontrols2
           mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-pkgconf
           
@@ -90,6 +91,29 @@ jobs:
 
         # 2) Copy main executable into package directory (after deployment)
         cp -u ./YUViz.exe "$pkgdir/"
+
+        # 2.1) Always copy essential QML modules (Controls/Layouts) into package qml dir
+        qtpaths_bin=/mingw64/bin/qtpaths6.exe
+        if [ -x "$qtpaths_bin" ]; then
+          qt_qml_dir=$($qtpaths_bin --qmldir | tr -d '\r')
+        else
+          qt_qml_dir=/mingw64/share/qt6/qml
+        fi
+        echo "Qt QML dir resolved to: $qt_qml_dir"
+        mkdir -p "$pkgdir/qml"
+        for m in \
+          QtQml \
+          QtQuick \
+          QtQuick.2 \
+          QtQuick/Controls \
+          QtQuick/Controls/Basic \
+          QtQuick/Layouts; do
+          if [ -d "$qt_qml_dir/$m" ]; then
+            dest="$pkgdir/qml/$m"
+            mkdir -p "$dest"
+            cp -r "$qt_qml_dir/$m"/* "$dest/" 2>/dev/null || true
+          fi
+        done
 
         # 3) Copy FFmpeg DLLs (common components)
         for lib in avcodec avformat avutil swscale swresample avfilter; do
