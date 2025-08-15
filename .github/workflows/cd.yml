@@ -78,7 +78,7 @@ jobs:
                 cp -u "$f" "$pkgdir/" || true
               done
               echo "Copied ${#qt_dlls[@]} Qt6 DLLs"
-            }
+          }
         else
           echo "windeployqt6.exe not found, fallback to manual copy of Qt6*.dll"
           shopt -s nullglob
@@ -94,27 +94,31 @@ jobs:
         cp -u ./YUViz.exe "$pkgdir/"
 
         # 2.1) Always copy essential QML modules (Controls/Layouts) into package qml dir
-        qtpaths_bin=/mingw64/bin/qtpaths6.exe
-        if [ -x "$qtpaths_bin" ]; then
-          qt_qml_dir=$($qtpaths_bin --qmldir | tr -d '\r')
-        else
-          qt_qml_dir=/mingw64/share/qt6/qml
+        qt_qml_dir=""
+        if [ -d "/mingw64/share/qt6/qml" ]; then
+          qt_qml_dir="/mingw64/share/qt6/qml"
+        elif [ -d "/mingw64/lib/qt6/qml" ]; then
+          qt_qml_dir="/mingw64/lib/qt6/qml"
         fi
-        echo "Qt QML dir resolved to: $qt_qml_dir"
+        echo "Qt QML dir resolved to: ${qt_qml_dir:-<not found>}"
         mkdir -p "$pkgdir/qml"
-        for m in \
-          QtQml \
-          QtQuick \
-          QtQuick.2 \
-          QtQuick/Controls \
-          QtQuick/Controls/Basic \
-          QtQuick/Layouts; do
-          if [ -d "$qt_qml_dir/$m" ]; then
-            dest="$pkgdir/qml/$m"
-            mkdir -p "$dest"
-            cp -r "$qt_qml_dir/$m"/* "$dest/" 2>/dev/null || true
-          fi
-        done
+        if [ -n "$qt_qml_dir" ]; then
+          for m in \
+            QtQml \
+            QtQuick \
+            QtQuick.2 \
+            QtQuick/Controls \
+            QtQuick/Controls/Basic \
+            QtQuick/Layouts; do
+            if [ -d "$qt_qml_dir/$m" ]; then
+              dest="$pkgdir/qml/$m"
+              mkdir -p "$dest"
+              cp -r "$qt_qml_dir/$m"/* "$dest/" 2>/dev/null || true
+            fi
+          done
+        else
+          echo "Warning: Qt QML dir not found; skipping QML module copy"
+        fi
 
         # 3) Copy FFmpeg DLLs (common components)
         for lib in avcodec avformat avutil swscale swresample avfilter; do
