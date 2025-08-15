@@ -107,6 +107,7 @@ jobs:
             QtQml \
             QtQuick \
             QtQuick.2 \
+            QtQuick/Window \
             QtQuick/Controls \
             QtQuick/Controls/Basic \
             QtQuick/Layouts; do
@@ -168,6 +169,14 @@ jobs:
         # 7) Ensure platform plugin exists
         mkdir -p "$pkgdir/platforms"
         find /mingw64 -name "qwindows.dll" -exec cp -u {} "$pkgdir/platforms/" \; 2>/dev/null || true
+
+        # 7.1) Write qt.conf to point QML imports to local qml folder and plugins to app dir
+        cat > "$pkgdir/qt.conf" << 'EOF'
+        [Paths]
+        Prefix=.
+        Qml2Imports=./qml
+        Plugins=.
+        EOF
 
         # 8) Package to zip
         powershell -Command "Compress-Archive -Path '${pkgdir}\\*' -DestinationPath '..\\YUViz-windows.zip' -Force"
