@@ -32,7 +32,8 @@ jobs:
           mingw-w64-x86_64-qt6-declarative
           mingw-w64-x86_64-qt6-shadertools
           mingw-w64-x86_64-qt6-tools
-          mingw-w64-x86_64-qt6-quickcontrols2
+          mingw-w64-x86_64-qt6
+          mingw-w64-x86_64-qt6-imageformats
           mingw-w64-x86_64-ffmpeg
           mingw-w64-x86_64-pkgconf
           
